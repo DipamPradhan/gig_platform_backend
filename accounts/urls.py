@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    DeleteUserView,
     MeView,
     RegisterView,
     BecomeWorkerView,
@@ -24,4 +25,5 @@ urlpatterns = [
         WorkerDocumentUploadView.as_view(),
         name="upload_document",
     ),
+    path("profile/delete/", DeleteUserView.as_view(), name="profile_delete"),
 ]

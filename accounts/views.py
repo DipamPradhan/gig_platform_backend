@@ -90,3 +90,17 @@ class WorkerDocumentUploadView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     queryset = WorkerDocument.objects.all()
     parser_classes = [MultiPartParser, FormParser]
+
+
+class DeleteUserView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+        user.delete()
+        return Response(
+            {"message": "Account deleted successfully"}, status=status.HTTP_200_OK
+        )
