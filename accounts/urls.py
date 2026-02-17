@@ -4,7 +4,7 @@ from .views import RegisterView, UserView, BecomeWorkerView, WorkerDocumentUploa
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
-    path("me/", UserView.as_view(), name="user"),
+    path("profile/", UserView.as_view(), name="user"),
     path("become-worker/", BecomeWorkerView.as_view(), name="become_worker"),
     path(
         "worker/documents/upload/",

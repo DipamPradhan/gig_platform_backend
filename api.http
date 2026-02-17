@@ -12,3 +12,55 @@ Content-Type: application/json
 }
 
 
+###
+POST http://127.0.0.1:8000/api/token/ HTTP/1.1
+Content-Type: application/json
+
+{
+  "email": "test2@gmail.com",
+  "password": "Test@12345"
+}
+
+
+###
+GET http://127.0.0.1:8000/accounts/profile/ HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzI5Mjg0LCJpYXQiOjE3NzEzMjc0ODQsImp0aSI6Ijg2OGQzNWQyMzJlNTQyM2Y5Y2I4ZjZlODEwNzY4NmEyIiwidXNlcl9pZCI6ImM4NGEzOTI4LTU0NzItNDVkZC1hNzlhLTJhY2I1M2FkODRiZSJ9.veSfCIDvfUaTpuU91VmYskEKuOiWnQ4b3QWTiHGmiKo
+
+
+###
+POST http://127.0.0.1:8000/accounts/become-worker/ HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzI5Mjg0LCJpYXQiOjE3NzEzMjc0ODQsImp0aSI6Ijg2OGQzNWQyMzJlNTQyM2Y5Y2I4ZjZlODEwNzY4NmEyIiwidXNlcl9pZCI6ImM4NGEzOTI4LTU0NzItNDVkZC1hNzlhLTJhY2I1M2FkODRiZSJ9.veSfCIDvfUaTpuU91VmYskEKuOiWnQ4b3QWTiHGmiKo
+Content-Type: application/json
+
+{
+  "service_category": "Electrician",
+  "skills": "Wiring, repair",
+  "bio": "I have 2 years experience",
+  "hourly_rate": "250.00",
+  "service_latitude": "27.42092",
+  "service_longitude": "85.20471",
+  "service_radius_km": "10.00"
+}
+
+
+### Upload Worker Document
+POST http://127.0.0.1:8000/accounts/worker/documents/upload/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzI5Mjg0LCJpYXQiOjE3NzEzMjc0ODQsImp0aSI6Ijg2OGQzNWQyMzJlNTQyM2Y5Y2I4ZjZlODEwNzY4NmEyIiwidXNlcl9pZCI6ImM4NGEzOTI4LTU0NzItNDVkZC1hNzlhLTJhY2I1M2FkODRiZSJ9.veSfCIDvfUaTpuU91VmYskEKuOiWnQ4b3QWTiHGmiKo
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="document_type"
+
+Citizenship
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="document_number"
+
+123456789
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="document_file"; filename="citizenship.jpg"
+Content-Type: image/jpeg
+
+< ./static/citizenship.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+

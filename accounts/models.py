@@ -123,6 +123,12 @@ class WorkerProfile(models.Model):
         INACTIVE = "Inactive"
         BUSY = "Busy"
 
+    class ServiceCategory(models.TextChoices):
+        PLUMBER = "_Plumber"
+        ELECTRICIAN = "Electrician"
+        CLEANER = "Cleaner"
+        CARPENTER = "Carpenter"
+
     worker = models.OneToOneField(
         CustomUser,
         on_delete=models.CASCADE,
@@ -148,7 +154,10 @@ class WorkerProfile(models.Model):
         default=AVAILABILITY_STATUS.INACTIVE,
     )
 
-    service_category = models.CharField(max_length=100)
+    service_category = models.CharField(
+        max_length=20,
+        choices=ServiceCategory.choices,
+    )
     skills = models.TextField(blank=True, null=True)
     bio = models.TextField(max_length=500, blank=True, null=True)
     hourly_rate = models.DecimalField(
