@@ -124,7 +124,7 @@ class WorkerProfile(models.Model):
         BUSY = "Busy"
 
     class ServiceCategory(models.TextChoices):
-        PLUMBER = "_Plumber"
+        PLUMBER = "Plumber"
         ELECTRICIAN = "Electrician"
         CLEANER = "Cleaner"
         CARPENTER = "Carpenter"

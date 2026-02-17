@@ -23,9 +23,6 @@ Content-Type: application/json
 
 
 ###
-GET http://127.0.0.1:8000/accounts/profile/ HTTP/1.1
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzI5Mjg0LCJpYXQiOjE3NzEzMjc0ODQsImp0aSI6Ijg2OGQzNWQyMzJlNTQyM2Y5Y2I4ZjZlODEwNzY4NmEyIiwidXNlcl9pZCI6ImM4NGEzOTI4LTU0NzItNDVkZC1hNzlhLTJhY2I1M2FkODRiZSJ9.veSfCIDvfUaTpuU91VmYskEKuOiWnQ4b3QWTiHGmiKo
-
 
 ###
 POST http://127.0.0.1:8000/accounts/become-worker/ HTTP/1.1
@@ -64,3 +61,29 @@ Content-Type: image/jpeg
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
 
 
+###
+GET http://127.0.0.1:8000/accounts/me/ HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzMwNTM0LCJpYXQiOjE3NzEzMjg3MzQsImp0aSI6IjA5ODA1MWNhYzc0ZTRmYmRhZDI2ZGMwZTQ3YTE0NmNlIiwidXNlcl9pZCI6ImM4NGEzOTI4LTU0NzItNDVkZC1hNzlhLTJhY2I1M2FkODRiZSJ9.OUthrHEGyTXIhet3FaTEIQ8WJGBNqB67jESLf3chxvI
+
+
+
+###
+PATCH http://127.0.0.1:8000/accounts/profile/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzMwNTM0LCJpYXQiOjE3NzEzMjg3MzQsImp0aSI6IjA5ODA1MWNhYzc0ZTRmYmRhZDI2ZGMwZTQ3YTE0NmNlIiwidXNlcl9pZCI6ImM4NGEzOTI4LTU0NzItNDVkZC1hNzlhLTJhY2I1M2FkODRiZSJ9.OUthrHEGyTXIhet3FaTEIQ8WJGBNqB67jESLf3chxvI
+Content-Type: application/json
+
+{
+  "current_latitude": "27.42081",
+  "current_longitude": "85.20486",
+  "current_address": "Bijaychowk, Kathmandu",
+  "preferred_radius_km":"2.00"
+}
+
+
+###
+GET http://127.0.0.1:8000/accounts/worker/profile/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzMwNTM0LCJpYXQiOjE3NzEzMjg3MzQsImp0aSI6IjA5ODA1MWNhYzc0ZTRmYmRhZDI2ZGMwZTQ3YTE0NmNlIiwidXNlcl9pZCI6ImM4NGEzOTI4LTU0NzItNDVkZC1hNzlhLTJhY2I1M2FkODRiZSJ9.OUthrHEGyTXIhet3FaTEIQ8WJGBNqB67jESLf3chxvI
+
+###
+GET http://127.0.0.1:8000/accounts/worker/documents/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzMwNTM0LCJpYXQiOjE3NzEzMjg3MzQsImp0aSI6IjA5ODA1MWNhYzc0ZTRmYmRhZDI2ZGMwZTQ3YTE0NmNlIiwidXNlcl9pZCI6ImM4NGEzOTI4LTU0NzItNDVkZC1hNzlhLTJhY2I1M2FkODRiZSJ9.OUthrHEGyTXIhet3FaTEIQ8WJGBNqB67jESLf3chxvI
