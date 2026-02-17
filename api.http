@@ -1,0 +1,14 @@
+###
+POST http://127.0.0.1:8000/accounts/register/ HTTP/1.1
+Content-Type: application/json
+ 
+{
+  "email": "test2@gmail.com",
+  "first_name": "Test2",
+  "last_name": "User",
+  "phone_number": "+9779810000000",
+  "password": "Test@12345",
+  "password2": "Test@12345"
+}
+
+
