@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import CustomUser, UserProfile, WorkerDocument, WorkerProfile
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import authenticate
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -126,4 +128,50 @@ class WorkerDocumentSerializer(serializers.ModelSerializer):
 
         return WorkerDocument.objects.create(
             worker_profile=user.worker_profile, **validated_data
+        )
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = (
+            "current_latitude",
+            "current_longitude",
+            "current_address",
+            "preferred_radius_km",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("created_at", "updated_at")
+
+
+class WorkerProfileSerializer(serializers.ModelSerializer):
+    worker = UserSerializer(read_only=True)
+
+    class Meta:
+        model = WorkerProfile
+        fields = (
+            "worker",
+            "service_category",
+            "skills",
+            "bio",
+            "hourly_rate",
+            "service_latitude",
+            "service_longitude",
+            "service_radius_km",
+            "verification_status",
+            "availability_status",
+            "average_rating",
+            "total_reviews",
+            "total_jobs_completed",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "verification_status",
+            "average_rating",
+            "total_reviews",
+            "total_jobs_completed",
+            "created_at",
+            "updated_at",
         )

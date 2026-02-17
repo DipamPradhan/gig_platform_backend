@@ -1,0 +1,118 @@
+###
+POST http://127.0.0.1:8000/accounts/register/ HTTP/1.1
+Content-Type: application/json
+ 
+{
+  "email": "test@gmail.com",
+  "first_name": "Test",
+  "last_name": "User",
+  "phone_number": "+9779800000000",
+  "password": "Test@12345",
+  "password2": "Test@12345"
+}
+
+
+###
+POST http://127.0.0.1:8000/api/token/ HTTP/1.1
+Content-Type: application/json
+
+{
+  "email": "test2@gmail.com",
+  "password": "Test@12345"
+}
+
+
+###
+
+###
+POST http://127.0.0.1:8000/accounts/become-worker/ HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzI5Mjg0LCJpYXQiOjE3NzEzMjc0ODQsImp0aSI6Ijg2OGQzNWQyMzJlNTQyM2Y5Y2I4ZjZlODEwNzY4NmEyIiwidXNlcl9pZCI6ImM4NGEzOTI4LTU0NzItNDVkZC1hNzlhLTJhY2I1M2FkODRiZSJ9.veSfCIDvfUaTpuU91VmYskEKuOiWnQ4b3QWTiHGmiKo
+Content-Type: application/json
+
+{
+  "service_category": "Electrician",
+  "skills": "Wiring, repair",
+  "bio": "I have 2 years experience",
+  "hourly_rate": "250.00",
+  "service_latitude": "27.42092",
+  "service_longitude": "85.20471",
+  "service_radius_km": "10.00"
+}
+
+
+### Upload Worker Document
+POST http://127.0.0.1:8000/accounts/worker/documents/upload/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzI5Mjg0LCJpYXQiOjE3NzEzMjc0ODQsImp0aSI6Ijg2OGQzNWQyMzJlNTQyM2Y5Y2I4ZjZlODEwNzY4NmEyIiwidXNlcl9pZCI6ImM4NGEzOTI4LTU0NzItNDVkZC1hNzlhLTJhY2I1M2FkODRiZSJ9.veSfCIDvfUaTpuU91VmYskEKuOiWnQ4b3QWTiHGmiKo
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="document_type"
+
+Citizenship
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="document_number"
+
+123456789
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="document_file"; filename="citizenship.jpg"
+Content-Type: image/jpeg
+
+< ./static/citizenship.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+###
+
+
+
+###
+PATCH http://127.0.0.1:8000/accounts/profile/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzMwNTM0LCJpYXQiOjE3NzEzMjg3MzQsImp0aSI6IjA5ODA1MWNhYzc0ZTRmYmRhZDI2ZGMwZTQ3YTE0NmNlIiwidXNlcl9pZCI6ImM4NGEzOTI4LTU0NzItNDVkZC1hNzlhLTJhY2I1M2FkODRiZSJ9.OUthrHEGyTXIhet3FaTEIQ8WJGBNqB67jESLf3chxvI
+Content-Type: application/json
+
+{
+  "current_latitude": "27.42081",
+  "current_longitude": "85.20486",
+  "current_address": "Bijaychowk, Kathmandu",
+  "preferred_radius_km":"2.00"
+}
+
+
+###
+GET http://127.0.0.1:8000/accounts/worker/profile/
+Authorization: BearereyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzMyOTkxLCJpYXQiOjE3NzEzMzExOTEsImp0aSI6IjMwMDk0NmEwMjNkNzQ0OWI4ZDkxZWEzMTU0ZTE1YTYwIiwidXNlcl9pZCI6ImI2ZTAyN2MwLTcxZjgtNGE2Ni05NmU5LWQxMzFlODg1NjQ0NSJ9.yEV1rXE-8WgVNyQ4neu1Zu5eJkojHXwQC-5r-1l3PVk
+
+###
+GET http://127.0.0.1:8000/accounts/worker/documents/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzMyOTkxLCJpYXQiOjE3NzEzMzExOTEsImp0aSI6IjMwMDk0NmEwMjNkNzQ0OWI4ZDkxZWEzMTU0ZTE1YTYwIiwidXNlcl9pZCI6ImI2ZTAyN2MwLTcxZjgtNGE2Ni05NmU5LWQxMzFlODg1NjQ0NSJ9.yEV1rXE-8WgVNyQ4neu1Zu5eJkojHXwQC-5r-1l3PVk
+
+###
+PATCH http://127.0.0.1:8000/accounts/worker/profile/ HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzMyOTkxLCJpYXQiOjE3NzEzMzExOTEsImp0aSI6IjMwMDk0NmEwMjNkNzQ0OWI4ZDkxZWEzMTU0ZTE1YTYwIiwidXNlcl9pZCI6ImI2ZTAyN2MwLTcxZjgtNGE2Ni05NmU5LWQxMzFlODg1NjQ0NSJ9.yEV1rXE-8WgVNyQ4neu1Zu5eJkojHXwQC-5r-1l3PVk
+Content-Type: application/json
+
+{
+  "skills": "Wiring, repair, installation",
+  "bio": "I have 3 years experience in electrical work.",
+  "hourly_rate": "300.00",
+  "service_latitude": "27.42092",
+  "service_longitude": "85.20471",
+  "service_radius_km": "15.00"
+}
+###
+GET http://127.0.0.1:8000/accounts/me/ HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzMzNTEzLCJpYXQiOjE3NzEzMzE3MTMsImp0aSI6ImI4MTU4OTdmMjRiZjQyZmVhYWZlOWQ4YmRkYTJlZGRlIiwidXNlcl9pZCI6ImIwYTRiYWFkLTViMjItNDkzZi1hZmNhLTBhMjg0Y2YwNDBmNCJ9.DXKf0LrOewDp9V7P4yMhT_oUzdc-_dOA1bs2j79btNk
+
+###
+
+DELETE http://127.0.0.1:8000/accounts/profile/delete/ HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzMyOTkxLCJpYXQiOjE3NzEzMzExOTEsImp0aSI6IjMwMDk0NmEwMjNkNzQ0OWI4ZDkxZWEzMTU0ZTE1YTYwIiwidXNlcl9pZCI6ImI2ZTAyN2MwLTcxZjgtNGE2Ni05NmU5LWQxMzFlODg1NjQ0NSJ9.yEV1rXE-8WgVNyQ4neu1Zu5eJkojHXwQC-5r-1l3PVk
+
+###
+GET http://127.0.0.1:8000/accounts/worker/profile/ HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzMzNjE3LCJpYXQiOjE3NzEzMzE4MTcsImp0aSI6IjViMjY5MmQwZWE1MzQzYzQ5NTlkOWI2YzYzZWExNjJkIiwidXNlcl9pZCI6ImM4NGEzOTI4LTU0NzItNDVkZC1hNzlhLTJhY2I1M2FkODRiZSJ9.DDRlftTIeMqg2eHnA9kBGn4mrKlaI77ggOMZHVzhEhU
+
+
+###
+GET http://127.0.0.1:8000/accounts/worker/documents/ HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcxMzMzNjE3LCJpYXQiOjE3NzEzMzE4MTcsImp0aSI6IjViMjY5MmQwZWE1MzQzYzQ5NTlkOWI2YzYzZWExNjJkIiwidXNlcl9pZCI6ImM4NGEzOTI4LTU0NzItNDVkZC1hNzlhLTJhY2I1M2FkODRiZSJ9.DDRlftTIeMqg2eHnA9kBGn4mrKlaI77ggOMZHVzhEhU
