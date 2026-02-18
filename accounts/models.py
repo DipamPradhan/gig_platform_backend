@@ -7,6 +7,26 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Create your models here.
 class CustomUser(AbstractUser):
+    """
+    CustomUser model extending Django's AbstractUser.
+    A custom user model that provides authentication and user management with additional
+    fields for gig worker backend application. Supports multiple user types (User, Worker, Admin)
+    and includes phone number validation, profile pictures, and email/phone verification tracking.
+    Attributes:
+        - id (UUIDField): Primary key using UUID4 for unique identification.
+        - email (EmailField): Unique email address for user authentication.
+        - phone_number (CharField): Unique phone number with international format validation.
+        - user_type (CharField): Classification of user role (User, Worker, or Admin).
+        - profile_picture (ImageField): Optional user profile image stored in 'profile_pictures/' directory.
+        - is_verified (BooleanField): Tracks whether user's email and phone have been verified.
+    Username Field:
+        Uses 'email' as the primary username field for authentication instead of default username.
+    Ordering:
+        Results are ordered by most recently joined users first.
+    Methods:
+        __str__(): Returns email and user type display for readable string representation.
+    """
+
     class Choice(models.TextChoices):
         USER = "User"
         WORKER = "Worker"
@@ -48,6 +68,23 @@ class CustomUser(AbstractUser):
 
 
 class UserProfile(models.Model):
+    """
+    UserProfile model that stores extended user information and location-based preferences.
+    This model maintains a one-to-one relationship with CustomUser and tracks:
+    - User's current geographic location (latitude, longitude, and address)
+    - User's preferred search radius for gig opportunities
+    - Timestamps for record creation and modification
+    Attributes:
+        - user (OneToOneField): Reference to the associated CustomUser instance
+        - current_latitude (DecimalField): User's current latitude coordinate (nullable)
+        - current_longitude (DecimalField): User's current longitude coordinate (nullable)
+        - current_address (TextField): User's current address as text (nullable)
+        - preferred_radius_km (DecimalField): Preferred search radius in kilometers,
+            constrained between 0.2 and 20.0 km (default: 5.0)
+        - created_at (DateTimeField): Timestamp when the profile was created
+        - updated_at (DateTimeField): Timestamp when the profile was last modified
+    """
+
     user = models.OneToOneField(
         CustomUser,
         on_delete=models.CASCADE,
@@ -82,6 +119,27 @@ class UserProfile(models.Model):
 
 
 class SavedLocation(models.Model):
+    """
+    SavedLocation model that stores user-defined saved locations.
+    This model maintains a many-to-one relationship with UserProfile and tracks:
+    - Label for the saved location (e.g., "Home", "Work")
+    - Type of location (Home, Work, Other)
+    - Geographic coordinates (latitude, longitude)
+    - Address of the saved location
+    - Default status (whether this is the user's default location)
+    - Timestamps for record creation
+    Attributes:
+        - id (UUIDField): Unique identifier for each saved location
+        - user_profile (ForeignKey): Reference to the associated UserProfile instance
+        - label (CharField): Label for the saved location
+        - location_type (CharField): Type of location (Home, Work, Other)
+        - latitude (DecimalField): Latitude coordinate of the saved location
+        - longitude (DecimalField): Longitude coordinate of the saved location
+        - address (TextField): Address of the saved location
+        - is_default (BooleanField): Whether this is the user's default location
+        - created_at (DateTimeField): Timestamp when the saved location was created
+    """
+
     class LocationType(models.TextChoices):
         HOME = "Home"
         WORK = "Work"
@@ -113,6 +171,37 @@ class SavedLocation(models.Model):
 
 
 class WorkerProfile(models.Model):
+    """
+    WorkerProfile Model
+    Represents a worker's profile in the gig worker platform, storing worker-specific information
+    such as verification status, availability, services offered, ratings, and service area details.
+    Attributes:
+        - worker (OneToOneField): Reference to the CustomUser who owns this profile.
+        - verification_status (CharField): Current verification status of the worker.
+            Choices: PENDING, VERIFIED, REJECTED. Default: PENDING.
+        - verified_at (DateTimeField): Timestamp when the worker was verified. Null if not yet verified.
+        - verified_by (ForeignKey): Reference to the admin/moderator who verified the worker.
+            Can be null if not yet verified or if verifier was deleted.
+        - rejection_reason (TextField): Reason for rejection if verification_status is REJECTED.
+        - availability_status (CharField): Current availability status of the worker.
+            Choices: ACTIVE, INACTIVE, BUSY. Default: INACTIVE.
+        - service_category (CharField): Primary service category offered by the worker.
+            Choices: PLUMBER, ELECTRICIAN, CLEANER, CARPENTER.
+        - skills (TextField): Comma-separated or detailed list of skills the worker possesses.
+        - bio (TextField): Professional biography/description of the worker (max 500 characters).
+        - hourly_rate (DecimalField): Hourly rate charged by the worker in currency units.
+        - service_latitude (DecimalField): Latitude coordinate of the worker's primary service location.
+        - service_longitude (DecimalField): Longitude coordinate of the worker's primary service location.
+        - service_radius_km (DecimalField): Radius in kilometers within which the worker provides services.
+            Default: 10.00 km.
+        - average_rating (DecimalField): Average rating based on completed jobs (scale: 0.00-5.00).
+            Default: 0.00.
+        - total_reviews (PositiveIntegerField): Number of reviews received from customers. Default: 0.
+        - total_jobs_completed (PositiveIntegerField): Total number of successfully completed jobs. Default: 0.
+        - created_at (DateTimeField): Timestamp when the profile was created (auto-set).
+        - updated_at (DateTimeField): Timestamp when the profile was last updated (auto-updated).
+    """
+
     class VERIFICATION_STATUS(models.TextChoices):
         PENDING = "Pending"
         VERIFIED = "Verified"
@@ -184,6 +273,28 @@ class WorkerProfile(models.Model):
 
 
 class WorkerDocument(models.Model):
+    """
+    WorkerDocument Model
+    This model represents identity and verification documents submitted by gig workers.
+    It stores document information, verification status, and audit trails for worker verification.
+    Attributes:
+        - id (UUIDField): Unique identifier for the document record.
+        - worker_profile (ForeignKey): Reference to the WorkerProfile that owns this document.
+        - document_type (CharField): Type of document (Citizenship, Driver's License, NIN Card).
+        - document_number (CharField): The identification number from the document.
+        - document_file (FileField): Uploaded document file stored in 'worker_documents/' directory.
+        - verification_status (CharField): Current verification state (Pending, Verified, Rejected).
+        - verified_at (DateTimeField): Timestamp when document was verified.
+        - verified_by (ForeignKey): Reference to the CustomUser who verified the document.
+        - rejection_reason (TextField): Reason for rejection if document was rejected.
+        - uploaded_at (DateTimeField): Timestamp when document was uploaded.
+    Meta:
+        Enforces unique constraint on (worker_profile, document_type, document_number) combination
+        to prevent duplicate document submissions of the same type from the same worker.
+    Methods:
+        __str__(): Returns a human-readable string representation showing document type and worker name.
+    """
+
     class DocumentType(models.TextChoices):
         CITIZENSHIP = "Citizenship"
         DRIVER_LICENSE = "Driver's License"
@@ -228,6 +339,7 @@ class WorkerDocument(models.Model):
 
 
 class AdminProfile(models.Model):
+
     admin = models.OneToOneField(
         CustomUser,
         on_delete=models.CASCADE,
