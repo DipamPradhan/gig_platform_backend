@@ -8,6 +8,12 @@ from .views import (
     WorkerDocumentListView,
     WorkerDocumentUploadView,
     WorkerProfileView,
+    WorkerAvailabilityUpdateView,
+    AllWorkerListView,
+    PendingWorkerVerificationListView,
+    PendingWorkerDocumentListView,
+    WorkerVerificationActionView,
+    WorkerDocumentVerificationActionView,
 )
 
 
@@ -24,6 +30,36 @@ urlpatterns = [
         "worker/documents/upload/",
         WorkerDocumentUploadView.as_view(),
         name="upload_document",
+    ),
+    path(
+        "worker/availability/",
+        WorkerAvailabilityUpdateView.as_view(),
+        name="worker_availability",
+    ),
+    path(
+        "admin/workers/",
+        AllWorkerListView.as_view(),
+        name="admin_all_workers",
+    ),
+    path(
+        "admin/workers/pending/",
+        PendingWorkerVerificationListView.as_view(),
+        name="admin_pending_workers",
+    ),
+    path(
+        "admin/documents/pending/",
+        PendingWorkerDocumentListView.as_view(),
+        name="admin_pending_documents",
+    ),
+    path(
+        "admin/workers/<uuid:worker_id>/verify/",
+        WorkerVerificationActionView.as_view(),
+        name="admin_verify_worker",
+    ),
+    path(
+        "admin/documents/<uuid:document_id>/verify/",
+        WorkerDocumentVerificationActionView.as_view(),
+        name="admin_verify_document",
     ),
     path("profile/delete/", DeleteUserView.as_view(), name="profile_delete"),
 ]

@@ -3,6 +3,8 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
+from django.db.models import Q
 
 
 # Create your models here.
@@ -18,7 +20,6 @@ class CustomUser(AbstractUser):
         - phone_number (CharField): Unique phone number with international format validation.
         - user_type (CharField): Classification of user role (User, Worker, or Admin).
         - profile_picture (ImageField): Optional user profile image stored in 'profile_pictures/' directory.
-        - is_verified (BooleanField): Tracks whether user's email and phone have been verified.
     Username Field:
         Uses 'email' as the primary username field for authentication instead of default username.
     Ordering:
@@ -52,10 +53,6 @@ class CustomUser(AbstractUser):
         upload_to="profile_pictures/",
         null=True,
         blank=True,
-    )
-    is_verified = models.BooleanField(
-        default=False,
-        help_text="Designates whether the user's email and phone number have been verified.",
     )
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username", "first_name", "last_name", "phone_number"]
@@ -95,12 +92,14 @@ class UserProfile(models.Model):
         decimal_places=6,
         null=True,
         blank=True,
+        db_index=True,
     )
     current_longitude = models.DecimalField(
         max_digits=9,
         decimal_places=6,
         null=True,
         blank=True,
+        db_index=True,
     )
     current_address = models.TextField(blank=True, null=True)
 
@@ -165,6 +164,13 @@ class SavedLocation(models.Model):
 
     class Meta:
         unique_together = [["user_profile", "label"]]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_profile"],
+                condition=Q(is_default=True),
+                name="unique_default_location_per_user",
+            )
+        ]
 
     def __str__(self):
         return f"{self.label} ({self.user_profile.user.get_full_name()})"
@@ -227,6 +233,7 @@ class WorkerProfile(models.Model):
         max_length=10,
         choices=VERIFICATION_STATUS.choices,
         default=VERIFICATION_STATUS.PENDING,
+        db_index=True,
     )
     verified_at = models.DateTimeField(null=True, blank=True)
     verified_by = models.ForeignKey(
@@ -241,11 +248,14 @@ class WorkerProfile(models.Model):
         max_length=10,
         choices=AVAILABILITY_STATUS.choices,
         default=AVAILABILITY_STATUS.INACTIVE,
+        db_index=True,
     )
 
     service_category = models.CharField(
         max_length=20,
         choices=ServiceCategory.choices,
+        default=ServiceCategory.PLUMBER,
+        db_index=True,
     )
     skills = models.TextField(blank=True, null=True)
     bio = models.TextField(max_length=500, blank=True, null=True)
@@ -253,10 +263,10 @@ class WorkerProfile(models.Model):
         max_digits=6, decimal_places=2, null=True, blank=True
     )
     service_latitude = models.DecimalField(
-        max_digits=9, decimal_places=6, null=True, blank=True
+        max_digits=9, decimal_places=6, null=True, blank=True, db_index=True
     )
     service_longitude = models.DecimalField(
-        max_digits=9, decimal_places=6, null=True, blank=True
+        max_digits=9, decimal_places=6, null=True, blank=True, db_index=True
     )
     service_radius_km = models.DecimalField(
         max_digits=5, decimal_places=2, default=10.00
@@ -267,6 +277,41 @@ class WorkerProfile(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["verification_status", "availability_status"]),
+            models.Index(fields=["service_category", "availability_status"]),
+            models.Index(fields=["average_rating"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+    @property
+    def is_recommendation_ready(self):
+        if self.verification_status != self.VERIFICATION_STATUS.VERIFIED:
+            return False
+        if self.availability_status != self.AVAILABILITY_STATUS.ACTIVE:
+            return False
+        return self.documents.filter(
+            verification_status=WorkerDocument.VERIFICATION_STATUS.VERIFIED
+        ).exists()
+
+    def clean(self):
+        if (
+            self.availability_status == self.AVAILABILITY_STATUS.ACTIVE
+            and self.verification_status != self.VERIFICATION_STATUS.VERIFIED
+        ):
+            raise ValidationError(
+                {
+                    "availability_status": (
+                        "Worker must be verified before becoming active."
+                    )
+                }
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.worker.get_full_name()} - {self.service_category}"
@@ -311,13 +356,14 @@ class WorkerDocument(models.Model):
     )
 
     document_type = models.CharField(max_length=20, choices=DocumentType.choices)
-    document_number = models.CharField(max_length=100)
+    document_number = models.CharField(max_length=100, db_index=True)
     document_file = models.FileField(upload_to="worker_documents/")
 
     verification_status = models.CharField(
         max_length=20,
         choices=VERIFICATION_STATUS.choices,
         default=VERIFICATION_STATUS.PENDING,
+        db_index=True,
     )
     verified_at = models.DateTimeField(null=True, blank=True)
     verified_by = models.ForeignKey(
@@ -333,6 +379,10 @@ class WorkerDocument(models.Model):
 
     class Meta:
         unique_together = [["worker_profile", "document_type", "document_number"]]
+        indexes = [
+            models.Index(fields=["worker_profile", "verification_status"]),
+            models.Index(fields=["uploaded_at"]),
+        ]
 
     def __str__(self):
         return f"{self.get_document_type_display()} - {self.worker_profile.worker.get_full_name()}"

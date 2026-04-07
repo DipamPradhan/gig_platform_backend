@@ -14,14 +14,14 @@ class CustomUserAdmin(UserAdmin):
     model = CustomUser
 
     list_display = (
+        "id",
         "email",
         "username",
         "user_type",
-        "is_verified",
         "is_staff",
         "is_active",
     )
-    list_filter = ("user_type", "is_verified", "is_staff", "is_active")
+    list_filter = ("user_type", "is_staff", "is_active")
 
     ordering = ("email",)
     search_fields = ("email", "username", "phone_number")
@@ -29,7 +29,7 @@ class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
         (
             "Extra Fields",
-            {"fields": ("phone_number", "user_type", "profile_picture", "is_verified")},
+            {"fields": ("phone_number", "user_type", "profile_picture")},
         ),
     )
 
@@ -38,7 +38,7 @@ admin.site.register(CustomUser, CustomUserAdmin)
 
 
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "preferred_radius_km", "updated_at")
+    list_display = ("id", "user", "preferred_radius_km", "updated_at")
     search_fields = ("user__email", "user__username")
 
 
@@ -47,6 +47,7 @@ admin.site.register(UserProfile, UserProfileAdmin)
 
 class WorkerProfileAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "worker",
         "service_category",
         "verification_status",
@@ -62,20 +63,27 @@ admin.site.register(WorkerProfile, WorkerProfileAdmin)
 
 class WorkerDocumentAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "worker_profile",
+        "worker_user_id",
         "document_type",
+        "document_number",
         "verification_status",
         "uploaded_at",
     )
     list_filter = ("document_type", "verification_status")
     search_fields = ("worker_profile__worker__email", "document_number")
 
+    @admin.display(description="Worker User ID")
+    def worker_user_id(self, obj):
+        return obj.worker_profile.worker_id
+
 
 admin.site.register(WorkerDocument, WorkerDocumentAdmin)
 
 
 class SavedLocationAdmin(admin.ModelAdmin):
-    list_display = ("user_profile", "label", "location_type", "is_default")
+    list_display = ("id", "user_profile", "label", "location_type", "is_default")
     list_filter = ("location_type", "is_default")
 
 
@@ -84,6 +92,7 @@ admin.site.register(SavedLocation, SavedLocationAdmin)
 
 class AdminProfileAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "admin",
         "can_verify_workers",
         "can_manage_users",
