@@ -22,11 +22,17 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from django.conf.urls.static import static
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/schema/", SpectacularAPIView.as_view(), name="api_schema"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="api_schema"), name="api_docs"),
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="api_schema"), name="api_redoc"),
     path("accounts/", include("accounts.urls")),
+    path("services/", include("services.urls")),
+    path("ratings/", include("ratings.urls")),
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 ]
