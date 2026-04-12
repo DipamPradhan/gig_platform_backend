@@ -218,12 +218,6 @@ class WorkerProfile(models.Model):
         INACTIVE = "Inactive"
         BUSY = "Busy"
 
-    class ServiceCategory(models.TextChoices):
-        PLUMBER = "Plumber"
-        ELECTRICIAN = "Electrician"
-        CLEANER = "Cleaner"
-        CARPENTER = "Carpenter"
-
     worker = models.OneToOneField(
         CustomUser,
         on_delete=models.CASCADE,
@@ -251,12 +245,8 @@ class WorkerProfile(models.Model):
         db_index=True,
     )
 
-    service_category = models.CharField(
-        max_length=20,
-        choices=ServiceCategory.choices,
-        default=ServiceCategory.PLUMBER,
-        db_index=True,
-    )
+    # Category values are sourced from services.ServiceCategory records.
+    service_category = models.CharField(max_length=80, default="Plumber", db_index=True)
     skills = models.TextField(blank=True, null=True)
     bio = models.TextField(max_length=500, blank=True, null=True)
     hourly_rate = models.DecimalField(

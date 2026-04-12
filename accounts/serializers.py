@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
+from services.models import ServiceCategory
 from .models import CustomUser, UserProfile, WorkerDocument, WorkerProfile
 
 
@@ -94,12 +95,30 @@ class BecomeWorkerSerializer(serializers.ModelSerializer):
         )
 
     def validate_service_category(self, value):
-        valid_categories = [choice[0] for choice in WorkerProfile.ServiceCategory.choices]
-        if value not in valid_categories:
-            raise serializers.ValidationError(
-                f"Invalid service category. Must be one of: {', '.join(valid_categories)}"
+        normalized_value = str(value).strip()
+        if not normalized_value:
+            raise serializers.ValidationError("Service category is required.")
+
+        category = ServiceCategory.objects.filter(
+            name__iexact=normalized_value,
+            is_active=True,
+        ).only("name").first()
+
+        if category is None:
+            available_categories = list(
+                ServiceCategory.objects.filter(is_active=True)
+                .order_by("name")
+                .values_list("name", flat=True)
             )
-        return value
+            if available_categories:
+                raise serializers.ValidationError(
+                    f"Invalid service category. Must be one of: {', '.join(available_categories)}"
+                )
+            raise serializers.ValidationError(
+                "No active service categories are configured. Please contact admin."
+            )
+
+        return category.name
 
     def create(self, validated_data):
         user = self.context["request"].user
