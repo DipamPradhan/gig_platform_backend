@@ -1,4 +1,6 @@
 from django.db import transaction
+from django.db.models import Count, Q
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
@@ -9,7 +11,7 @@ from accounts.permissions import IsWorkerUserType
 from accounts.models import WorkerProfile
 from ratings.models import WorkerRecommendationScore
 from services.algorithms.distance import haversine_km
-from services.algorithms.ranking import recommendation_score
+from services.algorithms.ranking import bayesian_rating, recommendation_score
 
 from .models import ServiceCategory, ServiceRequest, ServiceRequestBroadcast, ServiceRequestEvent
 from .serializers import (
@@ -46,7 +48,13 @@ def _recommended_candidates(user, category_id=None, max_radius_km=None):
 		service_latitude__isnull=False,
 		service_longitude__isnull=False,
 		documents__verification_status="Verified",
-	).select_related("worker").distinct()
+	).select_related("worker").annotate(
+		actual_completed_jobs=Count(
+			"assigned_requests",
+			filter=Q(assigned_requests__status=ServiceRequest.Status.COMPLETED),
+			distinct=True,
+		)
+	).distinct()
 
 	if category_id:
 		category_name = str(category_id)
@@ -54,7 +62,7 @@ def _recommended_candidates(user, category_id=None, max_radius_km=None):
 			matched_category = ServiceCategory.objects.filter(id=category_id).only("name").first()
 			if matched_category:
 				category_name = matched_category.name
-		except (TypeError, ValueError):
+		except (TypeError, ValueError, ValidationError):
 			pass
 		workers = workers.filter(service_category__iexact=category_name)
 
@@ -74,11 +82,19 @@ def _recommended_candidates(user, category_id=None, max_radius_km=None):
 		if distance_km > effective_radius:
 			continue
 
-		score_obj, _ = WorkerRecommendationScore.objects.get_or_create(worker=worker)
+		score_obj = WorkerRecommendationScore.objects.filter(worker=worker).first()
+		if score_obj:
+			worker_bayesian_rating = score_obj.bayesian_rating
+			worker_sentiment_score = score_obj.average_sentiment_compound
+		else:
+			# Fallback when a recommendation score row has not been materialized yet.
+			worker_bayesian_rating = bayesian_rating(worker.average_rating, worker.total_reviews)
+			worker_sentiment_score = 0
+
 		final_score = recommendation_score(
 			distance_km=distance_km,
-			bayesian_rate=score_obj.bayesian_rating,
-			sentiment_adj=score_obj.average_sentiment_compound,
+			bayesian_rate=worker_bayesian_rating,
+			sentiment_adj=worker_sentiment_score,
 			max_radius=effective_radius,
 		)
 
@@ -90,8 +106,8 @@ def _recommended_candidates(user, category_id=None, max_radius_km=None):
 				"worker_latitude": float(worker.service_latitude),
 				"worker_longitude": float(worker.service_longitude),
 				"distance_km": distance_km,
-				"bayesian_rating": score_obj.bayesian_rating,
-				"sentiment_score": score_obj.average_sentiment_compound,
+				"bayesian_rating": worker_bayesian_rating,
+				"sentiment_score": worker_sentiment_score,
 				"final_score": final_score,
 			}
 		)
@@ -223,7 +239,7 @@ class RecommendedWorkerSearchView(generics.GenericAPIView):
 				"skills": item["worker"].skills,
 				"bio": item["worker"].bio,
 				"hourly_rate": item["worker"].hourly_rate,
-				"total_jobs_completed": item["worker"].total_jobs_completed,
+				"total_jobs_completed": item["worker"].actual_completed_jobs,
 				"total_reviews": item["worker"].total_reviews,
 				"user_latitude": round(item["user_latitude"], 6),
 				"user_longitude": round(item["user_longitude"], 6),

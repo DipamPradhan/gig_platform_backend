@@ -17,6 +17,24 @@ class ServiceCategorySerializer(serializers.ModelSerializer):
 
 
 class ServiceRequestSerializer(serializers.ModelSerializer):
+    request_latitude = serializers.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        required=False,
+        allow_null=True,
+    )
+    request_longitude = serializers.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        required=False,
+        allow_null=True,
+    )
+    request_address = serializers.CharField(required=False, allow_blank=True)
+    search_radius_km = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        required=False,
+    )
     preferred_worker_id = serializers.UUIDField(
         write_only=True,
         required=False,
@@ -25,6 +43,7 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
     assigned_worker_details = serializers.SerializerMethodField(read_only=True)
     requester_details = serializers.SerializerMethodField(read_only=True)
     customer_visible_status = serializers.SerializerMethodField(read_only=True)
+    has_review = serializers.SerializerMethodField(read_only=True)
     category_name = serializers.CharField(source="category.name", read_only=True)
 
     class Meta:
@@ -43,6 +62,7 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             "search_radius_km",
             "status",
             "customer_visible_status",
+            "has_review",
             "preferred_worker_id",
             "assigned_worker",
             "assigned_worker_details",
@@ -65,6 +85,26 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, attrs):
+        request = self.context.get("request")
+        if request and request.user and hasattr(request.user, "user_profile"):
+            user_profile = request.user.user_profile
+
+            if attrs.get("request_latitude") is None:
+                attrs["request_latitude"] = user_profile.current_latitude
+            if attrs.get("request_longitude") is None:
+                attrs["request_longitude"] = user_profile.current_longitude
+            if not attrs.get("request_address") and user_profile.current_address:
+                attrs["request_address"] = user_profile.current_address
+
+        if attrs.get("request_latitude") is None or attrs.get("request_longitude") is None:
+            raise serializers.ValidationError(
+                {
+                    "detail": (
+                        "Location is missing. Set your profile location before creating a request."
+                    )
+                }
+            )
+
         preferred_worker_id = attrs.get("preferred_worker_id")
         if not preferred_worker_id:
             return attrs
@@ -127,7 +167,12 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             and (obj.cancellation_reason or "").lower().startswith("rejected by worker")
         ):
             return "REJECTED"
+        if obj.status in [ServiceRequest.Status.OPEN, ServiceRequest.Status.MATCHING]:
+            return "PENDING"
         return obj.status
+
+    def get_has_review(self, obj):
+        return hasattr(obj, "review")
 
 
 class ServiceRequestBroadcastSerializer(serializers.ModelSerializer):
