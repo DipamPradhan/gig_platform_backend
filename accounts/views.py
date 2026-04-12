@@ -51,6 +51,27 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         user_profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
         return user_profile
 
+    def perform_update(self, serializer):
+        profile = serializer.save()
+        user = self.request.user
+
+        # Keep worker search distance in sync with worker profile updates from /accounts/profile/.
+        if hasattr(user, "worker_profile"):
+            worker_profile = user.worker_profile
+            updates = []
+
+            if profile.current_latitude is not None:
+                worker_profile.service_latitude = profile.current_latitude
+                updates.append("service_latitude")
+
+            if profile.current_longitude is not None:
+                worker_profile.service_longitude = profile.current_longitude
+                updates.append("service_longitude")
+
+            if updates:
+                updates.append("updated_at")
+                worker_profile.save(update_fields=updates)
+
 
 class BecomeWorkerView(generics.CreateAPIView):
     serializer_class = BecomeWorkerSerializer
