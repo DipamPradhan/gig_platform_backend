@@ -46,15 +46,13 @@ NEGATIVE_WORDS = {
 
 INTENSIFIERS = {"very", "extremely", "highly", "really", "too", "super"}
 NEGATIONS = {"not", "never", "no", "none", "hardly", "barely"}
-TOKEN_PATTERN = re.compile(r"[a-zA-Z']+")
 
 
 def _tokenize(text):
-    return TOKEN_PATTERN.findall((text or "").lower())
+    return re.findall(r"[a-zA-Z']+", text.lower())
 
 
 def analyze_review_sentiment(text):
-    """Return (label, compound, confidence) based on a lexical sentiment pass."""
     text = (text or "").strip()
     if not text:
         return "NEUTRAL", Decimal("0.0000"), Decimal("0.5000")
@@ -104,9 +102,3 @@ def analyze_review_sentiment(text):
     confidence = Decimal(str(round(max(confidence_raw, 0.45), 4)))
 
     return label, compound, confidence
-
-
-def calculate_sentiment_compound(text):
-    """Backward-compatible helper used by existing views."""
-    _, compound, _ = analyze_review_sentiment(text)
-    return compound
