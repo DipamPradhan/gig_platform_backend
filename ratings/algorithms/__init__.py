@@ -1,3 +1,3 @@
-from .sentiment import calculate_sentiment_compound
+from .sentiment import analyze_review_sentiment
 
-__all__ = ["calculate_sentiment_compound"]
+__all__ = ["analyze_review_sentiment"]
