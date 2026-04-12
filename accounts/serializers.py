@@ -1,8 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import CustomUser, UserProfile, WorkerDocument, WorkerProfile
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from django.contrib.auth import authenticate
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -16,11 +14,18 @@ class UserSerializer(serializers.ModelSerializer):
             "last_name",
             "phone_number",
             "user_type",
+            "is_staff",
+            "is_superuser",
             "profile_picture",
-            "is_verified",
             "date_joined",
         )
-        read_only_fields = ("id", "is_verified", "user_type", "date_joined")
+        read_only_fields = (
+            "id",
+            "user_type",
+            "is_staff",
+            "is_superuser",
+            "date_joined",
+        )
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -88,6 +93,14 @@ class BecomeWorkerSerializer(serializers.ModelSerializer):
             "service_radius_km",
         )
 
+    def validate_service_category(self, value):
+        valid_categories = [choice[0] for choice in WorkerProfile.ServiceCategory.choices]
+        if value not in valid_categories:
+            raise serializers.ValidationError(
+                f"Invalid service category. Must be one of: {', '.join(valid_categories)}"
+            )
+        return value
+
     def create(self, validated_data):
         user = self.context["request"].user
 
@@ -106,16 +119,38 @@ class BecomeWorkerSerializer(serializers.ModelSerializer):
 
 
 class WorkerDocumentSerializer(serializers.ModelSerializer):
+    worker_profile_id = serializers.UUIDField(source="worker_profile.id", read_only=True)
+    worker_user_id = serializers.UUIDField(source="worker_profile.worker_id", read_only=True)
+    worker_name = serializers.SerializerMethodField(read_only=True)
+    worker_service_category = serializers.CharField(
+        source="worker_profile.service_category", read_only=True
+    )
+
     class Meta:
         model = WorkerDocument
         fields = (
             "id",
+            "worker_profile_id",
+            "worker_user_id",
+            "worker_name",
+            "worker_service_category",
             "document_type",
             "document_number",
             "document_file",
+            "verification_status",
+            "rejection_reason",
             "uploaded_at",
         )
-        read_only_fields = ["id", "uploaded_at"]
+        read_only_fields = [
+            "id",
+            "uploaded_at",
+            "verification_status",
+            "rejection_reason",
+            "worker_name",
+        ]
+
+    def get_worker_name(self, obj):
+        return obj.worker_profile.worker.get_full_name()
 
     def create(self, validated_data):
         user = self.context["request"].user
@@ -147,11 +182,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class WorkerProfileSerializer(serializers.ModelSerializer):
     worker = UserSerializer(read_only=True)
+    worker_id = serializers.UUIDField(source="worker.id", read_only=True)
+    has_verified_document = serializers.SerializerMethodField(read_only=True)
+    documents_count = serializers.SerializerMethodField(read_only=True)
+    ranking_score = serializers.SerializerMethodField(read_only=True)
+    bayesian_rating = serializers.SerializerMethodField(read_only=True)
+    sentiment_score = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = WorkerProfile
         fields = (
             "worker",
+            "worker_id",
             "service_category",
             "skills",
             "bio",
@@ -161,7 +203,13 @@ class WorkerProfileSerializer(serializers.ModelSerializer):
             "service_radius_km",
             "verification_status",
             "availability_status",
+            "rejection_reason",
+            "has_verified_document",
+            "documents_count",
             "average_rating",
+            "bayesian_rating",
+            "sentiment_score",
+            "ranking_score",
             "total_reviews",
             "total_jobs_completed",
             "created_at",
@@ -169,9 +217,82 @@ class WorkerProfileSerializer(serializers.ModelSerializer):
         )
         read_only_fields = (
             "verification_status",
+            "rejection_reason",
             "average_rating",
             "total_reviews",
             "total_jobs_completed",
             "created_at",
             "updated_at",
         )
+
+    def get_has_verified_document(self, obj):
+        return obj.documents.filter(
+            verification_status=WorkerDocument.VERIFICATION_STATUS.VERIFIED
+        ).exists()
+
+    def get_documents_count(self, obj):
+        return obj.documents.count()
+
+    def get_ranking_score(self, obj):
+        score = getattr(obj, "recommendation_score", None)
+        return score.recommendation_score if score else None
+
+    def get_bayesian_rating(self, obj):
+        score = getattr(obj, "recommendation_score", None)
+        return score.bayesian_rating if score else None
+
+    def get_sentiment_score(self, obj):
+        score = getattr(obj, "recommendation_score", None)
+        return score.average_sentiment_compound if score else None
+
+
+class WorkerAvailabilitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkerProfile
+        fields = ("availability_status",)
+
+    def validate_availability_status(self, value):
+        worker_profile = self.instance
+        if (
+            value == WorkerProfile.AVAILABILITY_STATUS.ACTIVE
+            and worker_profile.verification_status
+            != WorkerProfile.VERIFICATION_STATUS.VERIFIED
+        ):
+            raise serializers.ValidationError(
+                "Worker must be verified before setting active status."
+            )
+
+        if value == WorkerProfile.AVAILABILITY_STATUS.ACTIVE:
+            has_verified_document = worker_profile.documents.filter(
+                verification_status=WorkerDocument.VERIFICATION_STATUS.VERIFIED
+            ).exists()
+            if not has_verified_document:
+                raise serializers.ValidationError(
+                    "At least one verified document is required to become active."
+                )
+
+        return value
+
+
+class WorkerVerificationActionSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=["approve", "reject"])
+    rejection_reason = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        if attrs["action"] == "reject" and not attrs.get("rejection_reason"):
+            raise serializers.ValidationError(
+                {"rejection_reason": "Rejection reason is required."}
+            )
+        return attrs
+
+
+class DocumentVerificationActionSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=["approve", "reject"])
+    rejection_reason = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        if attrs["action"] == "reject" and not attrs.get("rejection_reason"):
+            raise serializers.ValidationError(
+                {"rejection_reason": "Rejection reason is required."}
+            )
+        return attrs
