@@ -41,7 +41,7 @@ class MeView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
-
+    
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer

@@ -1,0 +1,408 @@
+:root {
+  --bg-main: #eee8ff;
+  --bg-card: #f5f1ff;
+  --bg-soft: #e7defe;
+
+  --text-main: #2b2041;
+  --text-muted: #6d5a93;
+
+  --brand: #6d4bd1;
+  --brand-dark: #5635b3;
+
+  --accent: #8a63db;
+  --danger: #b04a7e;
+
+  --border: #d8c9fb;
+  --shadow: 0 8px 24px rgba(93, 60, 170, 0.15);
+}
+
+/* ---------- Base ---------- */
+body {
+  background: var(--bg-main);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ---------- Header ---------- */
+#header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+#header a {
+  color: var(--text-main);
+}
+
+#header #user-tools,
+#header #user-tools a {
+  color: #5f3bb2;
+}
+
+#header #user-tools a:hover {
+  color: #45278f;
+}
+
+/* Branding */
+.gw-branding h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #c5283d;
+}
+
+.gw-branding h1 a,
+#site-name a {
+  color: #c5283d !important;
+}
+
+.gw-subtitle,
+.gw-nav-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ---------- Main Content ---------- */
+#content {
+  background: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+  margin: 24px auto;
+}
+
+/* ---------- Breadcrumb ---------- */
+div.breadcrumbs {
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+/* ---------- Modules ---------- */
+.module,
+.inline-group {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.module h2,
+.inline-group h2 {
+  background: var(--bg-soft);
+  padding: 12px 16px;
+  font-weight: 600;
+}
+
+/* ---------- Tables ---------- */
+#changelist table {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#changelist table thead th {
+  background: linear-gradient(90deg, #4b2a97, #5f39b6);
+  color: #fff !important;
+  font-weight: 600;
+}
+
+#changelist table tbody tr:hover {
+  background: #f0e9ff;
+}
+
+#changelist table tbody tr:nth-child(even) {
+  background: #f8f5ff;
+}
+
+/* ---------- Buttons ---------- */
+.button,
+input[type="submit"],
+input[type="button"],
+.submit-row input,
+a.button {
+  background: var(--brand);
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  padding: 8px 14px;
+  min-height: 34px;
+  line-height: 1.1;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.button,
+.button:link,
+.button:visited,
+.button:hover,
+.button:focus,
+a.button,
+a.button:link,
+a.button:visited,
+a.button:hover,
+a.button:focus,
+input[type="submit"],
+input[type="button"],
+.submit-row input {
+  color: #ffffff !important;
+}
+
+.button:hover {
+  background: var(--brand-dark);
+}
+
+.button.default {
+  background: var(--accent);
+}
+
+.deletelink {
+  color: var(--danger);
+}
+
+/* ---------- Forms ---------- */
+input,
+textarea,
+select {
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: 0.2s;
+  font-size: 14px;
+}
+
+/* Inputs */
+input,
+textarea {
+  padding: 10px;
+}
+
+
+
+
+
+/* Focus */
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(109, 75, 209, 0.2);
+  outline: none;
+}
+
+/* ---------- Object tools ---------- */
+.object-tools a {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.object-tools a:hover {
+  background: #dfd2fb;
+}
+
+/* ---------- Sidebar ---------- */
+#nav-sidebar {
+  background: #efe7ff;
+  border-right: 1px solid #d6c3fb;
+}
+
+#nav-sidebar .module h2,
+#nav-sidebar .module caption,
+#nav-sidebar .current-app .section {
+  background: linear-gradient(90deg, #5531a6, #6b44c2) !important;
+  color: #ffffff !important;
+}
+
+#nav-sidebar .module h2 a,
+#nav-sidebar .module caption a,
+#nav-sidebar .current-app .section,
+#nav-sidebar .current-app .section a {
+  color: #ffffff !important;
+}
+
+#nav-sidebar a {
+  color: #3a246f;
+}
+
+#nav-sidebar tr:hover {
+  background: #d9c5ff;
+}
+
+/* ---------- Filter panel ---------- */
+#changelist-filter {
+  background: #efe7ff;
+  border: 1px solid #d6c3fb;
+  border-radius: 10px;
+}
+
+#changelist-filter h2 {
+  background: linear-gradient(90deg, #5531a6, #6b44c2);
+  color: #fff;
+}
+
+/* 🔥 FINAL OVERRIDE */
+.aligned .form-row select {
+  height: 40px !important;
+  padding: 6px 10px !important;
+  line-height: 1.3 !important;
+  font-size: 13px !important;
+}
+
+/* Override responsive.css */
+@media (max-width: 1024px) {
+  .aligned .form-row select {
+    height: 40px !important;
+  }
+}
+
+/* 🔥 FIX TABLE HEADER TEXT (WHITE) */
+#changelist table thead th,
+#changelist table thead th a {
+  color: #ffffff !important;
+}
+
+/* 🔥 FIX FIRST COLUMN LINKS (RED + UNDERLINE) */
+#changelist table tbody td:first-child a,
+#changelist table tbody th a {
+  color: #b11b4f !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+}
+
+/* 🔥 FIX TABLE HEADER (white text + gradient) */
+#result_list thead th,
+#result_list thead th a {
+  background: linear-gradient(90deg, #4b2a97, #5f39b6) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+/* 🔥 FIX FIRST COLUMN (red + underline like before) */
+#result_list tbody th a,
+#result_list tbody td:first-child a {
+  color: #b11b4f !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+}
+
+/* 🔥 ROW STRIPING (restore clean look) */
+#result_list tbody tr:nth-child(even) {
+  background: #f8f5ff;
+}
+
+#result_list tbody tr:nth-child(odd) {
+  background: #efe6ff;
+}
+
+#result_list tbody tr:hover {
+  background: #e6d9ff;
+}
+
+/* 🔥 FIX DASHBOARD CARDS HEADER */
+#content-main .module h2,
+#content-main .module caption {
+  background: linear-gradient(90deg, #4f2e98, #6c45c5) !important;
+  color: #ffffff !important;
+}
+
+/* Ensure links inside header stay white */
+#content-main .module h2 a,
+#content-main .module caption a {
+  color: #ffffff !important;
+}
+
+#content-main .module h2 a:link,
+#content-main .module h2 a:visited,
+#content-main .module h2 a:hover,
+#content-main .module h2 a:focus,
+#content-main .module caption a:link,
+#content-main .module caption a:visited,
+#content-main .module caption a:hover,
+#content-main .module caption a:focus {
+  color: #ffffff !important;
+}
+
+/* Restore dashboard card body colors to previous theme */
+#content-main .module {
+  background: #f5f1ff !important;
+}
+
+#content-main .module table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#content-main .module tbody tr:nth-child(odd) {
+  background: #efe6ff !important;
+}
+
+#content-main .module tbody tr:nth-child(even) {
+  background: #e6d9ff !important;
+}
+
+#content-main .module tbody tr:hover {
+  background: #d9c6ff !important;
+}
+
+#content-main .module td,
+#content-main .module tbody th {
+  color: #2d1f49 !important;
+  border-bottom: 1px solid #cdb5f5 !important;
+}
+
+#content-main .module thead th,
+#content-main .module thead th a,
+#content-main .module thead th a:link,
+#content-main .module thead th a:visited {
+  color: #ffffff !important;
+}
+
+#content-main .module a,
+#content-main .module a:link,
+#content-main .module a:visited {
+  color: #3d2478 !important;
+  font-weight: 600;
+}
+
+/* Keep action buttons white inside module areas. */
+#content-main .module a.button,
+#content-main .module a.button:link,
+#content-main .module a.button:visited,
+#content-main .module a.button:hover,
+#content-main .module a.button:focus {
+  color: #ffffff !important;
+}
+
+/* 🔥 Sidebar section headers */
+#nav-sidebar .module h2 {
+  background: linear-gradient(90deg, #5531a6, #6b44c2) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+#nav-sidebar .module caption,
+#nav-sidebar .current-app .section,
+#nav-sidebar .module caption a,
+#nav-sidebar .current-app .section a {
+  background: linear-gradient(90deg, #5531a6, #6b44c2) !important;
+  color: #ffffff !important;
+}
+/* Sidebar item background */
+#nav-sidebar .module {
+  background: #f5f1ff !important;
+  border-radius: 12px;
+}
+#nav-sidebar .current-model {
+  background: #e9ddff !important;
+  border-left: 4px solid #6d4bd1;
+}
+#changelist table tbody tr {
+  background: #f5f1ff;
+}
+
+#changelist table tbody tr:nth-child(even) {
+  background: #eee8ff;
+}
+#changelist table thead th {
+  color: #ffffff !important;
+}
