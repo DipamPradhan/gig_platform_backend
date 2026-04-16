@@ -114,6 +114,7 @@ class WorkerRecommendationScore(models.Model):
 		default=0,
 		db_index=True,
 	)
+	updated_at = models.DateTimeField(auto_now=True)
 	rank_last_updated_at = models.DateTimeField(auto_now=True)
 
 	class Meta:
