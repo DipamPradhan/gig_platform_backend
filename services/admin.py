@@ -4,7 +4,6 @@ from .models import (
 	ServiceRequest,
 	ServiceRequestBroadcast,
 	ServiceRequestEvent,
-	ServiceRouteSnapshot,
 )
 
 
@@ -43,7 +42,3 @@ class ServiceRequestEventAdmin(admin.ModelAdmin):
 	list_filter = ("event_type",)
 	search_fields = ("request__title", "actor__email")
 
-
-@admin.register(ServiceRouteSnapshot)
-class ServiceRouteSnapshotAdmin(admin.ModelAdmin):
-	list_display = ("id", "request", "estimated_distance_km", "estimated_duration_minutes")

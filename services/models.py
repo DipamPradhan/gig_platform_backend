@@ -181,30 +181,3 @@ class ServiceRequestEvent(models.Model):
 	def __str__(self):
 		return f"{self.event_type} - {self.request_id}"
 
-
-class ServiceRouteSnapshot(models.Model):
-	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-	request = models.OneToOneField(
-		ServiceRequest,
-		on_delete=models.CASCADE,
-		related_name="route_snapshot",
-	)
-	origin_latitude = models.DecimalField(max_digits=9, decimal_places=6)
-	origin_longitude = models.DecimalField(max_digits=9, decimal_places=6)
-	destination_latitude = models.DecimalField(max_digits=9, decimal_places=6)
-	destination_longitude = models.DecimalField(max_digits=9, decimal_places=6)
-	estimated_distance_km = models.DecimalField(
-		max_digits=8,
-		decimal_places=3,
-		null=True,
-		blank=True,
-	)
-	estimated_duration_minutes = models.PositiveIntegerField(null=True, blank=True)
-	route_polyline = models.TextField(blank=True)
-	map_url = models.URLField(blank=True)
-	created_at = models.DateTimeField(auto_now_add=True)
-
-	def __str__(self):
-		return f"Route snapshot for {self.request_id}"
-
-# Create your models here.

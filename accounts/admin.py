@@ -46,7 +46,7 @@ admin.site.register(UserProfile, UserProfileAdmin)
 
 
 class WorkerProfileAdmin(admin.ModelAdmin):
-    non_editable_status_fields = ("worker","verified_at","verified_by","service_category","average_rating","total_reviews","total_jobs_completed")
+    non_editable_status_fields = ("worker","verified_at","verified_by","service_category","average_rating","total_reviews","total_jobs_completed",)
     list_display = (
         "worker",
         "id",
@@ -89,7 +89,7 @@ admin.site.register(WorkerProfile, WorkerProfileAdmin)
 
 
 class WorkerDocumentAdmin(admin.ModelAdmin):
-    editable_status_fields = ("verification_status", "rejection_reason")
+    editable_status_fields = ("verification_status", "rejection_reason",)
 
     list_display = (
         "id",

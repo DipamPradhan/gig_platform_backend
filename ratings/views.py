@@ -28,7 +28,7 @@ def _refresh_worker_recommendation_score(worker_profile):
 	review_count = aggregate["review_count"] or 0
 	avg_rating = aggregate["avg_rating"] or 0
 
-	# Keep WorkerProfile denormalized stats in sync for worker dashboard usage.
+
 	worker_profile.average_rating = avg_rating
 	worker_profile.total_reviews = review_count
 	worker_profile.save(update_fields=["average_rating", "total_reviews", "updated_at"])
@@ -100,35 +100,26 @@ class WorkerReviewListCreateView(generics.ListCreateAPIView):
 				status=status.HTTP_400_BAD_REQUEST,
 			)
 
-		existing_review = WorkerReview.objects.filter(
-			request=service_request,
-			reviewer=request.user,
-		).first()
+		# Enforce one review per request. The model uses a OneToOneField on
+		# `request`, but check proactively and provide a clear error message.
+		existing_review = WorkerReview.objects.filter(request=service_request).first()
 
 		if existing_review:
-			serializer = self.get_serializer(
-				existing_review,
-				data=request.data,
-				partial=True,
+			return Response(
+				{"detail": "A review has already been submitted for this request."},
+				status=status.HTTP_400_BAD_REQUEST,
 			)
-		else:
-			serializer = self.get_serializer(data=request.data)
+
+		serializer = self.get_serializer(data=request.data)
 
 		serializer.is_valid(raise_exception=True)
 
-		if existing_review:
-			review = serializer.save(
-				worker=service_request.assigned_worker,
-				moderation_status=WorkerReview.ModerationStatus.APPROVED,
-			)
-			response_status = status.HTTP_200_OK
-		else:
-			review = serializer.save(
-				reviewer=request.user,
-				worker=service_request.assigned_worker,
-				moderation_status=WorkerReview.ModerationStatus.APPROVED,
-			)
-			response_status = status.HTTP_201_CREATED
+		review = serializer.save(
+			reviewer=request.user,
+			worker=service_request.assigned_worker,
+			moderation_status=WorkerReview.ModerationStatus.APPROVED,
+		)
+		response_status = status.HTTP_201_CREATED
 
 		label, compound, confidence = analyze_review_sentiment(review.review_text)
 		ReviewSentiment.objects.update_or_create(

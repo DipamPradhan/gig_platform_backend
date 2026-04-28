@@ -6,7 +6,6 @@ from .models import (
     ServiceRequest,
     ServiceRequestBroadcast,
     ServiceRequestEvent,
-    ServiceRouteSnapshot,
 )
 
 
@@ -172,7 +171,7 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         return obj.status
 
     def get_has_review(self, obj):
-        return hasattr(obj, "review")
+        return hasattr(obj, "worker_review")
 
 
 class ServiceRequestBroadcastSerializer(serializers.ModelSerializer):
@@ -274,20 +273,3 @@ class ServiceRequestEventSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class ServiceRouteSnapshotSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ServiceRouteSnapshot
-        fields = (
-            "id",
-            "request",
-            "origin_latitude",
-            "origin_longitude",
-            "destination_latitude",
-            "destination_longitude",
-            "estimated_distance_km",
-            "estimated_duration_minutes",
-            "route_polyline",
-            "map_url",
-            "created_at",
-        )
-        read_only_fields = ("id", "created_at")

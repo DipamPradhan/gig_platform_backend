@@ -2,7 +2,8 @@ from django.db import models
 import uuid
 
 from django.core.validators import MinValueValidator, MaxValueValidator
-
+from services.models import ServiceRequest
+from accounts.models import CustomUser,WorkerProfile
 
 class WorkerReview(models.Model):
 	class ModerationStatus(models.TextChoices):
@@ -12,17 +13,17 @@ class WorkerReview(models.Model):
 
 	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 	request = models.OneToOneField(
-		"services.ServiceRequest",
+		ServiceRequest,
 		on_delete=models.CASCADE,
 		related_name="worker_review",
 	)
 	reviewer = models.ForeignKey(
-		"accounts.CustomUser",
+		CustomUser,
 		on_delete=models.CASCADE,
 		related_name="submitted_worker_reviews",
 	)
 	worker = models.ForeignKey(
-		"accounts.WorkerProfile",
+		WorkerProfile,
 		on_delete=models.CASCADE,
 		related_name="received_reviews",
 	)
@@ -41,12 +42,9 @@ class WorkerReview(models.Model):
 
 	class Meta:
 		ordering = ["-created_at"]
-		constraints = [
-			models.UniqueConstraint(
-				fields=["reviewer", "worker", "request"],
-				name="unique_review_per_request",
-			)
-		]
+		# One review per ServiceRequest is enforced via the OneToOneField on `request`.
+		# Allow the same reviewer to review the same worker for different requests,
+		# so we do not enforce a global (reviewer, worker) uniqueness constraint.
 		indexes = [
 			models.Index(fields=["worker", "created_at"]),
 			models.Index(fields=["worker", "rating"]),
@@ -78,7 +76,7 @@ class ReviewSentiment(models.Model):
 		indexes = [models.Index(fields=["label", "processed_at"])]
 
 	def __str__(self):
-		return f"Sentiment {self.label} ({self.review_id})"
+		return f"Sentiment {self.label} ({self.review_id}) {self.review.worker}"
 
 
 class WorkerRecommendationScore(models.Model):
@@ -99,15 +97,8 @@ class WorkerRecommendationScore(models.Model):
 		default=0,
 	)
 	sentiment_adjustment = models.DecimalField(max_digits=6, decimal_places=4, default=0)
-
-	average_distance_km = models.DecimalField(
-		max_digits=8,
-		decimal_places=3,
-		default=0,
-		help_text="Rolling distance average for completed nearby jobs.",
-	)
+	average_distance_km = models.DecimalField(max_digits=8, decimal_places=3, default=0)
 	distance_component = models.DecimalField(max_digits=6, decimal_places=4, default=0)
-
 	recommendation_score = models.DecimalField(
 		max_digits=7,
 		decimal_places=4,
