@@ -57,6 +57,7 @@ class WorkerProfileAdmin(admin.ModelAdmin):
     )
     list_filter = ("verification_status", "availability_status", "service_category")
     search_fields = ("worker__email", "worker__username", "skills")
+    ordering = ("-updated_at",)
 
     def get_readonly_fields(self, request, obj=None):
         if request.user.is_superuser:
@@ -102,6 +103,7 @@ class WorkerDocumentAdmin(admin.ModelAdmin):
     )
     list_filter = ("document_type", "verification_status")
     search_fields = ("worker_profile__worker__email", "document_number")
+    ordering = ("-uploaded_at",)
 
     def get_readonly_fields(self, request, obj=None):
         if request.user.is_superuser:

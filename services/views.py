@@ -1,9 +1,10 @@
 from django.db import transaction
 from django.db.models import Count, Q
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -13,13 +14,12 @@ from ratings.models import WorkerRecommendationScore
 from services.algorithms.distance import haversine_km
 from services.algorithms.ranking import bayesian_rating, recommendation_score
 
-from .models import ServiceCategory, ServiceRequest, ServiceRequestBroadcast, ServiceRequestEvent
+from .models import ServiceCategory, ServiceRequest, ServiceRequestEvent
 from .serializers import (
 	ServiceCategorySerializer,
 	ServiceRequestSerializer,
 	ServiceRequestCancelSerializer,
-	ServiceRequestBroadcastSerializer,
-	ServiceRequestBroadcastActionSerializer,
+	WorkerRequestActionSerializer,
 	WorkerRecommendationResultSerializer,
 	ServiceRequestStatusUpdateSerializer,
 )
@@ -53,7 +53,7 @@ def _recommended_candidates(user, category_id=None, max_radius_km=None):
 			"assigned_requests",
 			filter=Q(assigned_requests__status=ServiceRequest.Status.COMPLETED),
 			distinct=True,
-		)
+		)	
 	).distinct()
 
 	if category_id:
@@ -62,7 +62,7 @@ def _recommended_candidates(user, category_id=None, max_radius_km=None):
 			matched_category = ServiceCategory.objects.filter(id=category_id).only("name").first()
 			if matched_category:
 				category_name = matched_category.name
-		except (TypeError, ValueError, ValidationError):
+		except (TypeError, ValueError, DjangoValidationError):
 			pass
 		workers = workers.filter(service_category__iexact=category_name)
 
@@ -87,7 +87,6 @@ def _recommended_candidates(user, category_id=None, max_radius_km=None):
 			worker_bayesian_rating = score_obj.bayesian_rating
 			worker_sentiment_score = score_obj.average_sentiment_compound
 		else:
-			# Fallback when a recommendation score row has not been materialized yet.
 			worker_bayesian_rating = bayesian_rating(worker.average_rating, worker.total_reviews)
 			worker_sentiment_score = 0
 
@@ -116,67 +115,12 @@ def _recommended_candidates(user, category_id=None, max_radius_km=None):
 	return result
 
 
-def _create_request_broadcasts(service_request):
-	user = service_request.requester
-	candidates = _recommended_candidates(
-		user=user,
-		category_id=service_request.category.name,
-		max_radius_km=service_request.search_radius_km,
-	)
-	if not candidates:
-		candidates = _recommended_candidates(
-			user=user,
-			category_id=None,
-			max_radius_km=service_request.search_radius_km,
-		)
-
-	if not candidates:
-		return 0
-
-	created = 0
-	for candidate in candidates[:20]:
-		broadcast, was_created = ServiceRequestBroadcast.objects.get_or_create(
-			request=service_request,
-			worker=candidate["worker"],
-			defaults={
-				"distance_km": round(candidate["distance_km"], 3),
-				"ranking_score": round(candidate["final_score"], 4),
-			},
-		)
-		if was_created:
-			created += 1
-
-	if created > 0:
-		service_request.status = ServiceRequest.Status.MATCHING
-		service_request.save(update_fields=["status", "updated_at"])
-		ServiceRequestEvent.objects.create(
-			request=service_request,
-			event_type=ServiceRequestEvent.EventType.BROADCASTED,
-			actor=user,
-			detail=f"Request broadcasted to {created} workers.",
-		)
-
-	return created
-
-
-def _create_direct_worker_broadcast(service_request, worker_profile):
-	_, created = ServiceRequestBroadcast.objects.get_or_create(
-		request=service_request,
-		worker=worker_profile,
-		defaults={"status": ServiceRequestBroadcast.Status.SENT},
-	)
-
-	if not created:
+def _set_worker_availability(worker_profile, availability_status):
+	if worker_profile.availability_status == availability_status:
 		return False
 
-	service_request.status = ServiceRequest.Status.MATCHING
-	service_request.save(update_fields=["status", "updated_at"])
-	ServiceRequestEvent.objects.create(
-		request=service_request,
-		event_type=ServiceRequestEvent.EventType.BROADCASTED,
-		actor=service_request.requester,
-		detail=f"Request directly sent to worker {worker_profile.worker_id}.",
-	)
+	worker_profile.availability_status = availability_status
+	worker_profile.save(update_fields=["availability_status", "updated_at"])
 	return True
 
 
@@ -198,22 +142,20 @@ class ServiceRequestListCreateView(generics.ListCreateAPIView):
 
 	def perform_create(self, serializer):
 		preferred_worker_profile = serializer.validated_data.get("preferred_worker_profile")
+		if not preferred_worker_profile:
+			raise ValidationError({"preferred_worker_id": "Please select a worker to send this request."})
+
 		request_obj = serializer.save(
 			requester=self.request.user,
-			status=ServiceRequest.Status.OPEN,
+			status=ServiceRequest.Status.MATCHING,
+			assigned_worker=preferred_worker_profile,
 		)
 		ServiceRequestEvent.objects.create(
 			request=request_obj,
 			event_type=ServiceRequestEvent.EventType.REQUESTED,
 			actor=self.request.user,
-			detail="Service request created.",
+			detail=f"Service request sent to selected worker {preferred_worker_profile.worker_id}.",
 		)
-
-		if preferred_worker_profile:
-			_create_direct_worker_broadcast(request_obj, preferred_worker_profile)
-			return
-
-		_create_request_broadcasts(request_obj)
 
 
 class RecommendedWorkerSearchView(generics.GenericAPIView):
@@ -256,28 +198,20 @@ class RecommendedWorkerSearchView(generics.GenericAPIView):
 		return Response(payload, status=status.HTTP_200_OK)
 
 
-class WorkerBroadcastInboxView(generics.ListAPIView):
+class WorkerRequestInboxView(generics.ListAPIView):
 	permission_classes = [IsAuthenticated, IsWorkerUserType]
-	serializer_class = ServiceRequestBroadcastSerializer
+	serializer_class = ServiceRequestSerializer
 
 	def get_queryset(self):
-		return ServiceRequestBroadcast.objects.filter(
-			worker=self.request.user.worker_profile,
-			status__in=[
-				ServiceRequestBroadcast.Status.SENT,
-				ServiceRequestBroadcast.Status.VIEWED,
-			],
-		).select_related("request", "request__requester", "request__category")
+		return ServiceRequest.objects.filter(
+			assigned_worker=self.request.user.worker_profile,
+			status=ServiceRequest.Status.MATCHING,
+		).select_related("category", "requester", "assigned_worker", "assigned_worker__worker")
 
 
-class WorkerBroadcastActionView(generics.GenericAPIView):
+class WorkerRequestActionView(generics.GenericAPIView):
 	permission_classes = [IsAuthenticated, IsWorkerUserType]
-	serializer_class = ServiceRequestBroadcastActionSerializer
-	queryset = ServiceRequestBroadcast.objects.select_related("request", "worker")
-	lookup_url_kwarg = "broadcast_id"
-
-	def get_object(self):
-		return get_object_or_404(self.queryset, id=self.kwargs[self.lookup_url_kwarg])
+	serializer_class = WorkerRequestActionSerializer
 
 	@transaction.atomic
 	def post(self, request, *args, **kwargs):
@@ -285,86 +219,81 @@ class WorkerBroadcastActionView(generics.GenericAPIView):
 		serializer.is_valid(raise_exception=True)
 		action = serializer.validated_data["action"]
 
-		broadcast = self.get_object()
-		if broadcast.worker_id != request.user.worker_profile.id:
+		service_request = get_object_or_404(
+			ServiceRequest.objects.select_for_update(),
+			id=self.kwargs["request_id"],
+		)
+
+		if service_request.assigned_worker_id != request.user.worker_profile.id:
 			return Response(
-				{"detail": "This broadcast does not belong to the current worker."},
+				{"detail": "This request does not belong to the current worker."},
 				status=status.HTTP_403_FORBIDDEN,
 			)
 
-		service_request = ServiceRequest.objects.select_for_update().get(id=broadcast.request_id)
+		if service_request.status != ServiceRequest.Status.MATCHING:
+			return Response(
+				{"detail": "This request is no longer pending worker response."},
+				status=status.HTTP_409_CONFLICT,
+			)
 
 		if action == "accept":
-			if service_request.assigned_worker_id:
-				return Response(
-					{"detail": "Request already assigned to another worker."},
-					status=status.HTTP_409_CONFLICT,
-				)
-
 			if request.user.worker_profile.verification_status != WorkerProfile.VERIFICATION_STATUS.VERIFIED:
 				return Response(
 					{"detail": "Worker must be verified before accepting requests."},
 					status=status.HTTP_400_BAD_REQUEST,
 				)
 
-			service_request.assigned_worker = request.user.worker_profile
+			if request.user.worker_profile.availability_status != WorkerProfile.AVAILABILITY_STATUS.ACTIVE:
+				return Response(
+					{"detail": "Worker must be available before accepting requests."},
+					status=status.HTTP_400_BAD_REQUEST,
+				)
+
+			active_statuses = [ServiceRequest.Status.ASSIGNED, ServiceRequest.Status.ARRIVING, ServiceRequest.Status.IN_PROGRESS]
+			if request.user.worker_profile.assigned_requests.filter(status__in=active_statuses).exists():
+				return Response(
+					{"detail": "Worker already has an active job. Finish it before accepting another request."},
+					status=status.HTTP_409_CONFLICT,
+				)
+
 			service_request.assigned_at = timezone.now()
 			service_request.status = ServiceRequest.Status.ASSIGNED
-			service_request.save(update_fields=["assigned_worker", "assigned_at", "status", "updated_at"])
-
-			broadcast.status = ServiceRequestBroadcast.Status.ACCEPTED
-			broadcast.responded_at = timezone.now()
-			broadcast.save(update_fields=["status", "responded_at", "updated_at"])
-
-			ServiceRequestBroadcast.objects.filter(
-				request=service_request,
-				status__in=[ServiceRequestBroadcast.Status.SENT, ServiceRequestBroadcast.Status.VIEWED],
-			).exclude(id=broadcast.id).update(status=ServiceRequestBroadcast.Status.EXPIRED)
+			service_request.save(update_fields=["assigned_at", "status", "updated_at"])
+			_set_worker_availability(
+				request.user.worker_profile,
+				WorkerProfile.AVAILABILITY_STATUS.BUSY,
+			)
 
 			ServiceRequestEvent.objects.create(
 				request=service_request,
 				event_type=ServiceRequestEvent.EventType.ACCEPTED,
 				actor=request.user,
-				detail="Worker accepted broadcast request.",
+				detail="Worker accepted request.",
 			)
 		else:
-			if broadcast.status in [ServiceRequestBroadcast.Status.ACCEPTED, ServiceRequestBroadcast.Status.REJECTED]:
-				return Response(
-					{"detail": "Broadcast already responded."},
-					status=status.HTTP_409_CONFLICT,
-				)
-
-			broadcast.status = ServiceRequestBroadcast.Status.REJECTED
-			broadcast.responded_at = timezone.now()
-			broadcast.rejection_reason = serializer.validated_data["rejection_reason"]
-			broadcast.save(update_fields=["status", "responded_at", "rejection_reason", "updated_at"])
+			rejection_reason = serializer.validated_data["rejection_reason"]
+			service_request.assigned_worker = None
+			service_request.status = ServiceRequest.Status.CANCELLED
+			service_request.closed_at = timezone.now()
+			service_request.cancellation_reason = f"Rejected by worker: {rejection_reason}"
+			service_request.save(
+				update_fields=[
+					"assigned_worker",
+					"status",
+					"closed_at",
+					"cancellation_reason",
+					"updated_at",
+				]
+			)
 
 			ServiceRequestEvent.objects.create(
 				request=service_request,
 				event_type=ServiceRequestEvent.EventType.REJECTED,
 				actor=request.user,
-				detail=broadcast.rejection_reason,
+				detail=rejection_reason,
 			)
 
-			pending_broadcast_exists = ServiceRequestBroadcast.objects.filter(
-				request=service_request,
-				status__in=[
-					ServiceRequestBroadcast.Status.SENT,
-					ServiceRequestBroadcast.Status.VIEWED,
-				],
-			).exists()
-
-			if not pending_broadcast_exists and service_request.assigned_worker_id is None:
-				service_request.status = ServiceRequest.Status.CANCELLED
-				service_request.closed_at = timezone.now()
-				service_request.cancellation_reason = (
-					f"Rejected by worker: {broadcast.rejection_reason}"
-				)
-				service_request.save(
-					update_fields=["status", "closed_at", "cancellation_reason", "updated_at"]
-				)
-
-		return Response(ServiceRequestBroadcastSerializer(broadcast).data, status=status.HTTP_200_OK)
+		return Response(ServiceRequestSerializer(service_request).data, status=status.HTTP_200_OK)
 
 
 class WorkerAssignedRequestListView(generics.ListAPIView):
@@ -374,6 +303,13 @@ class WorkerAssignedRequestListView(generics.ListAPIView):
 	def get_queryset(self):
 		return ServiceRequest.objects.filter(
 			assigned_worker=self.request.user.worker_profile,
+			status__in=[
+				ServiceRequest.Status.ASSIGNED,
+				ServiceRequest.Status.ARRIVING,
+				ServiceRequest.Status.IN_PROGRESS,
+				ServiceRequest.Status.COMPLETED,
+				ServiceRequest.Status.CANCELLED,
+			],
 		).select_related("category", "requester", "assigned_worker", "assigned_worker__worker")
 
 
@@ -412,14 +348,6 @@ class ServiceRequestCustomerCancelView(generics.GenericAPIView):
 		service_request.cancellation_reason = reason
 		service_request.save(update_fields=["status", "closed_at", "cancellation_reason", "updated_at"])
 
-		ServiceRequestBroadcast.objects.filter(
-			request=service_request,
-			status__in=[
-				ServiceRequestBroadcast.Status.SENT,
-				ServiceRequestBroadcast.Status.VIEWED,
-			],
-		).update(status=ServiceRequestBroadcast.Status.EXPIRED)
-
 		ServiceRequestEvent.objects.create(
 			request=service_request,
 			event_type=ServiceRequestEvent.EventType.CANCELLED,
@@ -434,6 +362,7 @@ class ServiceRequestWorkerStatusUpdateView(generics.GenericAPIView):
 	permission_classes = [IsAuthenticated, IsWorkerUserType]
 	serializer_class = ServiceRequestStatusUpdateSerializer
 
+	@transaction.atomic
 	def post(self, request, *args, **kwargs):
 		service_request = get_object_or_404(
 			ServiceRequest,
@@ -474,6 +403,12 @@ class ServiceRequestWorkerStatusUpdateView(generics.GenericAPIView):
 			update_fields.append("closed_at")
 
 		service_request.save(update_fields=update_fields)
+
+		if new_status in [ServiceRequest.Status.COMPLETED, ServiceRequest.Status.CANCELLED]:
+			_set_worker_availability(
+				request.user.worker_profile,
+				WorkerProfile.AVAILABILITY_STATUS.ACTIVE,
+			)
 
 		event_type_map = {
 			ServiceRequest.Status.ARRIVING: ServiceRequestEvent.EventType.ARRIVING,

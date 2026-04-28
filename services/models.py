@@ -84,72 +84,9 @@ class ServiceRequest(models.Model):
 		return f"{self.title} ({self.get_status_display()})"
 
 
-class ServiceRequestBroadcast(models.Model):
-	class Status(models.TextChoices):
-		SENT = "SENT", "Sent"
-		VIEWED = "VIEWED", "Viewed"
-		ACCEPTED = "ACCEPTED", "Accepted"
-		REJECTED = "REJECTED", "Rejected"
-		EXPIRED = "EXPIRED", "Expired"
-
-	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-	request = models.ForeignKey(
-		ServiceRequest,
-		on_delete=models.CASCADE,
-		related_name="broadcasts",
-	)
-	worker = models.ForeignKey(
-		"accounts.WorkerProfile",
-		on_delete=models.CASCADE,
-		related_name="request_broadcasts",
-	)
-	status = models.CharField(
-		max_length=20,
-		choices=Status.choices,
-		default=Status.SENT,
-		db_index=True,
-	)
-	distance_km = models.DecimalField(
-		max_digits=8,
-		decimal_places=3,
-		null=True,
-		blank=True,
-		validators=[MinValueValidator(0.0)],
-	)
-	ranking_score = models.DecimalField(
-		max_digits=7,
-		decimal_places=4,
-		null=True,
-		blank=True,
-	)
-	expires_at = models.DateTimeField(null=True, blank=True)
-	responded_at = models.DateTimeField(null=True, blank=True)
-	rejection_reason = models.CharField(max_length=255, blank=True)
-	created_at = models.DateTimeField(auto_now_add=True)
-	updated_at = models.DateTimeField(auto_now=True)
-
-	class Meta:
-		ordering = ["-created_at"]
-		constraints = [
-			models.UniqueConstraint(
-				fields=["request", "worker"],
-				name="unique_broadcast_per_worker_per_request",
-			)
-		]
-		indexes = [
-			models.Index(fields=["worker", "status"]),
-			models.Index(fields=["request", "status"]),
-			models.Index(fields=["ranking_score"]),
-		]
-
-	def __str__(self):
-		return f"Broadcast {self.request_id} -> {self.worker_id}"
-
-
 class ServiceRequestEvent(models.Model):
 	class EventType(models.TextChoices):
 		REQUESTED = "REQUESTED", "Requested"
-		BROADCASTED = "BROADCASTED", "Broadcasted"
 		ACCEPTED = "ACCEPTED", "Accepted"
 		REJECTED = "REJECTED", "Rejected"
 		ARRIVING = "ARRIVING", "Arriving"

@@ -4,7 +4,6 @@ from accounts.models import WorkerProfile
 from .models import (
     ServiceCategory,
     ServiceRequest,
-    ServiceRequestBroadcast,
     ServiceRequestEvent,
 )
 
@@ -174,50 +173,7 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         return hasattr(obj, "worker_review")
 
 
-class ServiceRequestBroadcastSerializer(serializers.ModelSerializer):
-    service_request = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = ServiceRequestBroadcast
-        fields = (
-            "id",
-            "request",
-            "worker",
-            "status",
-            "distance_km",
-            "ranking_score",
-            "expires_at",
-            "responded_at",
-            "rejection_reason",
-            "created_at",
-            "service_request",
-        )
-        read_only_fields = fields
-
-    def get_service_request(self, obj):
-        request_obj = obj.request
-        requester = request_obj.requester
-        return {
-            "id": str(request_obj.id),
-            "title": request_obj.title,
-            "description": request_obj.description,
-            "status": request_obj.status,
-            "service_category": request_obj.category.name,
-            "address": request_obj.request_address,
-            "request_latitude": request_obj.request_latitude,
-            "request_longitude": request_obj.request_longitude,
-            "created_at": request_obj.created_at,
-            "customer": {
-                "id": str(requester.id),
-                "first_name": requester.first_name,
-                "last_name": requester.last_name,
-                "phone_number": requester.phone_number,
-                "email": requester.email,
-            },
-        }
-
-
-class ServiceRequestBroadcastActionSerializer(serializers.Serializer):
+class WorkerRequestActionSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=["accept", "reject"])
     rejection_reason = serializers.CharField(required=False, allow_blank=True)
 

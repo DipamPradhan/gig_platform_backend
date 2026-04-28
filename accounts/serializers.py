@@ -272,6 +272,16 @@ class WorkerAvailabilitySerializer(serializers.ModelSerializer):
 
     def validate_availability_status(self, value):
         worker_profile = self.instance
+        active_statuses = ["ASSIGNED", "ARRIVING", "IN_PROGRESS"]
+        has_active_job = worker_profile.assigned_requests.filter(
+            status__in=active_statuses
+        ).exists()
+
+        if has_active_job and value != WorkerProfile.AVAILABILITY_STATUS.BUSY:
+            raise serializers.ValidationError(
+                "Worker is busy with an active job. Complete or cancel it before changing availability."
+            )
+
         if (
             value == WorkerProfile.AVAILABILITY_STATUS.ACTIVE
             and worker_profile.verification_status

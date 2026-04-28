@@ -48,7 +48,7 @@ class WorkerReviewAdmin(admin.ModelAdmin):
 class ReviewSentimentAdmin(admin.ModelAdmin):
 	list_display = ("id", "review", "label", "compound_score", "confidence", "processed_at")
 	list_filter = ("label",)
-
+	ordering = ("-processed_at",)
 
 
 class WorkerRecommendationScoreAdmin(admin.ModelAdmin):
@@ -62,6 +62,7 @@ class WorkerRecommendationScoreAdmin(admin.ModelAdmin):
 	)
 
 	search_fields = ("worker__worker__email",)
+	ordering = ("-rank_last_updated_at",)
 
 admin.site.register(WorkerReview, WorkerReviewAdmin)
 admin.site.register(ReviewSentiment, ReviewSentimentAdmin)

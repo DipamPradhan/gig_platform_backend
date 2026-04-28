@@ -287,6 +287,22 @@ class WorkerProfile(models.Model):
         ).exists()
 
     def clean(self):
+        active_statuses = ["ASSIGNED", "ARRIVING", "IN_PROGRESS"]
+        has_active_job = False
+        if not self._state.adding:
+            has_active_job = self.assigned_requests.filter(
+                status__in=active_statuses
+            ).exists()
+
+        if has_active_job and self.availability_status != self.AVAILABILITY_STATUS.BUSY:
+            raise ValidationError(
+                {
+                    "availability_status": (
+                        "Worker is busy with an active job. Complete or cancel it before changing availability."
+                    )
+                }
+            )
+
         if (
             self.availability_status == self.AVAILABILITY_STATUS.ACTIVE
             and self.verification_status != self.VERIFICATION_STATUS.VERIFIED
